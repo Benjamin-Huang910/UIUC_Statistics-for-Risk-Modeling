@@ -1,1 +1,1 @@
-# UIUC_Statistics-for-Risk-Modeling
+# UIUC_StatisticsForRiskModeling
