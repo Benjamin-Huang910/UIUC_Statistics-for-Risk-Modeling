@@ -1,0 +1,100 @@
+---
+title: "WO1D"
+author: "Benjamin Huang"
+date: "2024-09-05"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Standard Deviation is a measure of spread
+$$
+S_Y = \sqrt{\frac{1}{n-1}\sum(y_i-\bar{y})^2}
+$$
+
+```{r}
+#assigns values to A
+A <- c(4, 5, 6)
+#sample deviation of A
+sd(A)
+```
+
+Q1. Use the code above to find the standard deviation of B=(3, 5, 7)
+```{r}
+B <- c(3, 5, 7)
+sd(B)
+```
+
+Correlation describes the linear relationship between A and B.
+$$
+r_{X,Y} = \frac{1}{(n-1)s_Xs_Y}\sum(x_i-\bar{x})(y_i-\bar{y})
+$$
+
+Q2. Use the cor() function to find the correlation between A and B
+```{r}
+A <- c(4, 5, 6)
+B <- c(3, 5, 7)
+cor(A, B)
+```
+
+Sometimes you need to use a function that isn't in base R. Fortunately, R is a open resource and many packages have been created to solve these problems.
+```{r}
+#install.packages("moments")
+library(moments)
+A <- c(4, 5, 6)
+skewness(A)
+```
+
+A is symmetrical around its mean, 5.
+
+Q3. Plot and find the skewness of the data set pressure. Is this data normally distributed?
+```{r}
+data("pressure")
+plot(pressure)
+```
+
+A histogram can make it clear if a data set is normally distributed.
+```{r}
+set.seed(441)
+par(mfrow = c(1,2))
+hist(pressure$pressure)
+hist(rnorm(1000))
+#they do not look similar
+```
+
+Another graphical way of checking if data is normally distributed is with a qq plot (Quantile-Quantile plot). The idea is to plot the percentiles, or quantiles, of one distribution against the other. If they come from the same distribution, then the points should lie on a line
+```{r}
+qqnorm(pressure$pressure); qqline(pressure$pressure)
+#not normally distributed
+```
+
+Q4. Below is a block of code that shows what a qq plot will look like for normally distributed data. Describbe what each line does in front of the comments, #.
+```{r}
+#
+set.seed(441)
+n <- 50
+(x <- rnorm(n, 0, 1))
+qqnorm(x); qqline(x)
+```
+
+The pnorm(x) function gives $P(Z<x)$ for a normal distribution.
+The qnorm(p) function gives the x-value for a given percentile.
+```{r}
+pnorm(1.96)
+qnorm(0.975)
+```
+
+Q5. Find the probability that a draw from a standard normal distribution is between -1.5 and 0.5.
+```{r}
+pnorm(0.5) - pnorm(-1,5)
+```
+
+Q6. Determine the z-values that contain the middle 60% of the standard normal distribution.
+```{r}
+qnorm(0.2)
+qnorm(0.8)
+```
+
+
+
+
