@@ -32,6 +32,47 @@ A data frame with 31 observations on 3 variables.
 [,3] Volume; numeric; volume of timber in cubic ft
 
 ```{r}
+#install.packages("tidyverse")
+#install.packages("gridExtra")
+#install.packages("GGally")
+library(tidyverse)
+library(gridExtra)
+library(GGally)
+```
+
+```{r}
+# Function to plot histograms with normal distribution overlay and no grid
+plot_histogram_with_normal <- function(data, column_name, title)  {
+  mean_val <- mean(data[[column_name]])
+  sd_val <- sd(data[[column_name]])
+  
+  ggplot(data, aes(x = .data[[column_name]])) +
+    geom_histogram(aes(y = ..density..), bins = 30, color = "black", fill = "skyblue") +
+    stat_function(fun = dnorm, args = list(mean = mean_val, sd = sd_val), color = "red", size = 1) +
+    ggtitle(title) +
+    xlab(title) +
+    ylab("Density") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 16, face = "bold"),
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      axis.text = element_text(size = 12),
+      panel.grid = element_blank() # Removes gridlines
+    )
+}
+
+# Create individual plots
+p1 <- plot_histogram_with_normal(trees, "Girth", "Tree Girth")
+p2 <- plot_histogram_with_normal(trees, "Height", "Tree Height")
+p3 <- plot_histogram_with_normal(trees, "Volume", "Tree Volume")
+
+# Arrange them in one row
+library(gridExtra)
+grid.arrange(p1, p2, p3, nrow = 1)
+```
+
+```{r}
 par(mfrow = c(1, 3))
 hist(trees$Girth); hist(trees$Height); hist(trees$Volume)
 ```
@@ -44,6 +85,32 @@ Next are plots of the columns against each other.
 
 ```{r}
 plot(trees)
+```
+
+```{r}
+# Function to add a custom plot for scatter plots with correlation and best-fit line
+custom_plot <- function(data, mapping, ...)  {
+  ggplot(data = data, mapping = mapping) +
+    geom_point(color = "blue", size = 3) + # Scatter plot points
+    geom_smooth(method = "lm", color = "red", se = FALSE) + # Best-fit
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank() # Remove grid lines
+    )
+}
+
+# Create the ggpairs matrix plot with correlation and best-fit line
+ggpairs(trees,
+        lower = list(continuous = custom_plot), # Use custom scatter plots in lower triangle
+        diag = list(continuous = wrap("barDiag", fill = "skyblue")), # Histograms on diagonal
+        upper = list(continuous = wrap("cor", size = 6)) # Correlation coefficient in upper triangle
+        ) +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    axis.text = element_text(size = 12)
+  )
 ```
 
 Q2. Which pair has the highest correlation?
@@ -92,6 +159,12 @@ summary(lm2)
 Q6. What is the $p$-value corresponding to $H_o : \beta_1 = 0$?
 Answer: $p$ = 0.000378
 
+In the code lm2 <- lm(Volume ~ Height, data = trees) followed by summary(lm2), the p-value corresponding to the hypothesis test:
+
+$H_0 : \beta_1 = 0 \: vs. \: H_1 : \beta_1 \neq 0$
+
+(i.e., testing whether the slope of Height is significantly different from zero) can be found under the column labeled Pr(>|t|) in the output of summary(lm2). This p-value is located in the row corresponding to Height. It tests the null is 0. If the p-value is small (typically less than 0.05, but other values are also accepted), it indicates that you should reject the null hypothesis and conclude that Height is a significant predictor of Volume.
+
 We can find the percentiles from a $t$-distribution using the qt(p, df) function.
 
 The pt(t, df) function gives the corresponding probability for a $t$-value.
@@ -103,7 +176,70 @@ pt(-2.976, 29)*2 #probability level of the t distribution
 Q7. Explain why there is "/2" in qt and "*2" outside pt.
 
 Answer:
-It's performing two-tail test.
+This is because we are doing a two-tailed test, which is represented by Pr(>|t|).
+
+I don't understand what this question is trying to achieve, maybe we could as a different question, whether the previous t test corresponds to a one-sided or a double-sided hypothesis test(answer, double sided, hint from the columns in the summary object)
+
+Proposed Question and Revision
+
+Two-Sided Hypothesis Testing
+
+A two-sided hypothesis test assesses whether a parameter is significantly different from a null value in either direction-either higher or lower. For example, when testing if a regression coefficient $\beta_1$ is different from zero, the null hypothesis ($H_0$) might be $\beta_1$ = 0, while the alternative hypothesis ($H_A$) would be $\beta_1 \neq 0$. The test checks for evidence that $\beta_1$ is either significantly greater than or less than zero.
+
+To make this more concrete, consider a two-sided confidence interval for $\beta_1$:
+
+$\hat{\beta_1} \pm t_{\alpha/2, n-2} \times SE(\hat{\beta_1})$ where:
+
+1. $\hat{\beta_1}$ is the estimated regression coefficient.
+
+2. $t_{\alpha/2, n-2}$ is the critical value from the t-distribution corresponding to the $\alpha/2$ level of significance with $n-2$ degrees of freedom.
+
+3. $SE(\hat{\beta_1})$ is the standard error of the estimated coefficient.
+
+The confidence interval provides a range where the true value of $\beta_1$ is likely to fall with a specified level of confidence. If zero falls outside this interval, it suggests that $\beta_1$ is significantly different from zero in either direction.
+
+```{r}
+# Define parameters for the plots
+mean_val <- 0
+sd_val <- 1
+alpha <- 0.05
+crit_val <- qnorm(1 - alpha/2) # Two-sided critical value
+crit_val_one_sided <- qnorm(1 - alpha) # One-sided critical value
+
+# Create data frame fir plotting
+x <- seq(-4, 4, length.out = 100)
+y <- dnorm(x, mean = mean_val, sd = sd_val)
+data <- data.frame(x = x, y = y)
+
+# Plot for Two-Sided Hypothesis Test
+plot_two_sided <- ggplot(data, aes(x = x, y = y)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = 0, ymax = y), fill = "blue", alpha = 0.2) +
+  geom_vline(xintercept = c(-crit_val, crit_val), linetype = "dashed", color = "red") +
+  ggtitle("Two-Sided Hypothesis Test") +
+  xlab("Value") +
+  ylab("Density") +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(), # Remove major grid lines
+        panel.grid.minor = element_blank(), # Remove minor grid lines
+        plot.title = element_text(hjust = 0.5))
+
+# Plot for One-Sided Hypothesis Test
+plot_one_sided <- ggplot(data, aes(x = x, y = y)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = 0, ymax = y), fill = "blue", alpha = 0.2) +
+  geom_vline(xintercept = crit_val_one_sided, linetype = "dashed", color = "red") +
+  ggtitle("One-Sided Hypothesis Test") +
+  xlab("Value") +
+  ylab("Density") +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(), # Remove major grid lines
+        panel.grid.minor = element_blank(), # Remove minor grid lines
+        plot.title = element_text(hjust = 0.5))
+
+# Arrange plots side by side
+grid.arrange(plot_two_sided, plot_one_sided, ncol = 2)
+```
 
 Q8. Find the approximate and actual 95% confidence interval for $\beta_1$ for lm2.
 ```{r}
@@ -113,6 +249,28 @@ Q8. Find the approximate and actual 95% confidence interval for $\beta_1$ for lm
 #Actual
 1.5433 + qt(.025, 29)*0.3839; 1.5433 + qt(.975, 29)*0.3839
 ```
+
+The 95% confidence interval for a regression coefficient $\beta_1$ provides a range that likely contains the true coefficient value based on the sample data. The approximate confidence interval is calculated as:
+
+$\hat{\beta_1} \pm 2 \times SE(\hat{\beta_1})$
+
+The factor of 2 is a rough approximation for the critical value from the t-distribution when the sample size is large (around 30 observations or more).
+
+The actual 95% confidence interval is more preciesly calculated using:
+
+$\hat{\beta_1} \pm t_{\alpha/2, n-2} \times SE(\hat{\beta_1})$
+
+where:
+
+1, $\hat{\beta_1} = 1.5433$
+
+2, $t_{\alpha/2, n-2}$ is the critical t-value for a 95% confidence level with n-2 degrees of freedom.
+
+3, $SE(\hat{\beta_1}) = 0.3839$.
+
+where actual values from the t distribution are used. This gives a more accurate interval than the approximation, reflecting the t-distribution's dependence on sample size.
+
+Bonus Question: Which one is wider? Why?
 
 This can also be done with the confint() function.
 ```{r}
@@ -125,6 +283,32 @@ Q9. Find the 99.9% confidnece interval for the intercept.
 confint(lm2, "(Intercept)", level = 0.999)
 ```
 
+A prediction interval in regression analysis estimates the range within which a new individual observation is expected to fall, considering both the uncertainty in the regression model and the natural variability in the data around the regression line. It provides a broader range compared to a confidence interval because it includes the variability of individual data points as well as the uncertainty in estimating the model parameters. In contrast, a confidence interval estimates the range within which the true population parameter (e.g., the slope of the regression line) lies, reflecting only the precision of the parameter estimates and not the variability of individual observations. Thus, while a prediction interval gives a wider range for a individual future observations, a confidence interval focuses on the accuracy of the model's parameter estimates.
+
+Prediction Interval and Confidence Interval
+
+The prediction interval for a new observation $y_{new}$ at given value $x_{new}$ is given by:
+
+$\hat{y}_{new} \pm t_{\alpha/2, n-2} \cdot \sqrt{MSE(1 + \frac{1}{n} + \frac{(x_{new} - \bar{x})^2}{S_{xx}})}$
+
+where:
+
+$\hat{y}_{new}$ is the predicted value from the regression model. $t_{\alpha/2, n-2}$ is the critical value from the t-distribution with $n-2$ degrees of freedom. MSE is the mean squared error of the regression model. $n$ is the number of observations. $x_{new}$ is the new predictor value. $\bar{x}$ is the mean of the predictor values. $S_{xx} = \sum{(x_i - \bar{x})^2}$ is the sum of squared deviations of the predictor values. 
+
+The confidence interval for the regression coefficient $\beta_1$ is given by:
+
+$\hat{\beta}_1 \pm t_{\alpha/2, n-2} \cdot SE(\hat{\beta_1})$
+
+where:
+
+$\hat{\beta}_1$ is the estimated coefficient from the regression model. $t_{\alpha/2, n-2}$ is the critical value from the t-distribution with $n-2$ degrees of freedom. $SE(\hat{\beta}_1)$ is the standard error of the estimated coefficient. 
+
+Mathematical Difference Prediction Interval: Includes terms to account for both the uncertainty in predicting the mean response $(\hat{y}_{new})$ and the variability of the individual observations around the regression line. It incorporates the mean squared error and additional terms reflecting the variability around the regression line.
+
+Confidence Interval: Focuses on the precision of the estimated regression coefficient $\hat{\beta}_1$ and does not include terms for the variability of individual observations. It reflects only the error in estimating the regression parameter.
+
+In summary, while the prediction interval accounts for the variability of individual observations and uncertainty in predicting the mean response, the confidence interval only addresses the precision of the estimated regression coefficients.
+
 To create a prediction interval, we need to define a new data set that contains value of Height.
 
 This is done below.
@@ -133,4 +317,4 @@ newdata = data.frame(Height = mean(trees$Height))
 predict.lm(lm2, newdata = newdata, interval = "prediction", level = .95)
 ```
 
-
+Create a new data frame with a single value for Height set to the mean height of the trees in the dataset. Uses the linear model lm2 to predict the response for this mean height, including a 95% prediction interval. This prediction interval estimates where a new individual observation of Volume is likely to fall when Height is at its average value.
